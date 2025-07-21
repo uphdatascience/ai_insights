@@ -94,14 +94,16 @@ from core.authentication import AuthenticationHelper
 from core.sessionhelper import create_session_id
 from decorators import authenticated, authenticated_path
 from error import error_dict, error_response
-from prepdocs import (
-    clean_key_if_exists,
-    setup_embeddings_service,
-    setup_file_processors,
-    setup_search_info,
-)
-from prepdocslib.filestrategy import UploadUserFileStrategy
-from prepdocslib.listfilestrategy import File
+from azure.core.credentials import AzureKeyCredential
+
+# from prepdocs import (
+#     clean_key_if_exists,
+#     setup_embeddings_service,
+#     setup_file_processors,
+#     setup_search_info,
+# )
+#from prepdocslib.filestrategy import UploadUserFileStrategy
+#from prepdocslib.listfilestrategy import File
 
 bp = Blueprint("routes", __name__, static_folder="static")
 # Fix Windows registry issue with mimetypes
@@ -384,8 +386,9 @@ async def upload(auth_claims: dict[str, Any]):
     file_io = io.BufferedReader(file_io)
     await file_client.upload_data(file_io, overwrite=True, metadata={"UploadedBy": user_oid})
     file_io.seek(0)
-    ingester: UploadUserFileStrategy = current_app.config[CONFIG_INGESTER]
-    await ingester.add_file(File(content=file_io, acls={"oids": [user_oid]}, url=file_client.url))
+    #MEGAN
+    #ingester: UploadUserFileStrategy = current_app.config[CONFIG_INGESTER]
+    #await ingester.add_file(File(content=file_io, acls={"oids": [user_oid]}, url=file_client.url))
     return jsonify({"message": "File uploaded successfully"}), 200
 
 
@@ -524,7 +527,7 @@ async def setup_clients():
     search_client = SearchClient(
         endpoint=AZURE_SEARCH_ENDPOINT,
         index_name=AZURE_SEARCH_INDEX,
-        credential=azure_credential,
+        credential=AzureKeyCredential(os.environ["AZURE_SEARCH_API_KEY"]), #credential=azure_credential, #MEGAN
     )
     agent_client = KnowledgeAgentRetrievalClient(
         endpoint=AZURE_SEARCH_ENDPOINT, agent_name=AZURE_SEARCH_AGENT, credential=azure_credential
@@ -570,35 +573,39 @@ async def setup_clients():
         current_app.config[CONFIG_USER_BLOB_CONTAINER_CLIENT] = user_blob_container_client
 
         # Set up ingester
-        file_processors = setup_file_processors(
-            azure_credential=azure_credential,
-            document_intelligence_service=os.getenv("AZURE_DOCUMENTINTELLIGENCE_SERVICE"),
-            local_pdf_parser=os.getenv("USE_LOCAL_PDF_PARSER", "").lower() == "true",
-            local_html_parser=os.getenv("USE_LOCAL_HTML_PARSER", "").lower() == "true",
-            search_images=USE_GPT4V,
-        )
-        search_info = await setup_search_info(
-            search_service=AZURE_SEARCH_SERVICE, index_name=AZURE_SEARCH_INDEX, azure_credential=azure_credential
-        )
-        text_embeddings_service = setup_embeddings_service(
-            azure_credential=azure_credential,
-            openai_host=OPENAI_HOST,
-            openai_model_name=OPENAI_EMB_MODEL,
-            openai_service=AZURE_OPENAI_SERVICE,
-            openai_custom_url=AZURE_OPENAI_CUSTOM_URL,
-            openai_deployment=AZURE_OPENAI_EMB_DEPLOYMENT,
-            openai_dimensions=OPENAI_EMB_DIMENSIONS,
-            openai_api_version=AZURE_OPENAI_API_VERSION,
-            openai_key=clean_key_if_exists(OPENAI_API_KEY),
-            openai_org=OPENAI_ORGANIZATION,
-            disable_vectors=os.getenv("USE_VECTORS", "").lower() == "false",
-        )
-        ingester = UploadUserFileStrategy(
-            search_info=search_info,
-            embeddings=text_embeddings_service,
-            file_processors=file_processors,
-            search_field_name_embedding=AZURE_SEARCH_FIELD_NAME_EMBEDDING,
-        )
+        #MEGAN
+        # file_processors = setup_file_processors(
+        #     azure_credential=azure_credential,
+        #     document_intelligence_service=os.getenv("AZURE_DOCUMENTINTELLIGENCE_SERVICE"),
+        #     local_pdf_parser=os.getenv("USE_LOCAL_PDF_PARSER", "").lower() == "true",
+        #     local_html_parser=os.getenv("USE_LOCAL_HTML_PARSER", "").lower() == "true",
+        #     search_images=USE_GPT4V,
+        # )
+        #MEGAN
+        # search_info = await setup_search_info(
+        #     search_service=AZURE_SEARCH_SERVICE, index_name=AZURE_SEARCH_INDEX, azure_credential=azure_credential
+        # )
+        #MEGAN
+        # text_embeddings_service = setup_embeddings_service(
+        #     azure_credential=azure_credential,
+        #     openai_host=OPENAI_HOST,
+        #     openai_model_name=OPENAI_EMB_MODEL,
+        #     openai_service=AZURE_OPENAI_SERVICE,
+        #     openai_custom_url=AZURE_OPENAI_CUSTOM_URL,
+        #     openai_deployment=AZURE_OPENAI_EMB_DEPLOYMENT,
+        #     openai_dimensions=OPENAI_EMB_DIMENSIONS,
+        #     openai_api_version=AZURE_OPENAI_API_VERSION,
+        #     #openai_key=clean_key_if_exists(OPENAI_API_KEY), #MEGAN
+        #     openai_org=OPENAI_ORGANIZATION,
+        #     disable_vectors=os.getenv("USE_VECTORS", "").lower() == "false",
+        # )
+        #MEGAN
+        # ingester = UploadUserFileStrategy(
+        #     search_info=search_info,
+        #     embeddings=text_embeddings_service,
+        #     file_processors=file_processors,
+        #     search_field_name_embedding=AZURE_SEARCH_FIELD_NAME_EMBEDDING,
+        # )
         current_app.config[CONFIG_INGESTER] = ingester
 
     # Used by the OpenAI SDK
@@ -804,10 +811,14 @@ async def close_clients():
 
 def create_app():
     app = Quart(__name__)
+    print("Quart app created") #MEGAN
     app.register_blueprint(bp)
+    print("Main blueprint registered") #MEGAN
     app.register_blueprint(chat_history_cosmosdb_bp)
+    print("Chat history blueprint registered") #MEGAN
 
     if os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING"):
+        print("Azure Monitor connection string detected.") #MEGAN
         app.logger.info("APPLICATIONINSIGHTS_CONNECTION_STRING is set, enabling Azure Monitor")
         configure_azure_monitor()
         # This tracks HTTP requests made by aiohttp:
@@ -818,19 +829,27 @@ def create_app():
         OpenAIInstrumentor().instrument()
         # This middleware tracks app route requests:
         app.asgi_app = OpenTelemetryMiddleware(app.asgi_app)  # type: ignore[assignment]
+        print("Azure Monitor configured.")  # MEGAN
+    else: # MEGAN
+        print("No Azure Monitor connection string found.")  # MEGAN
 
     # Log levels should be one of https://docs.python.org/3/library/logging.html#logging-levels
     # Set root level to WARNING to avoid seeing overly verbose logs from SDKS
-    logging.basicConfig(level=logging.WARNING)
+    #logging.basicConfig(level=logging.WARNING)
+    logging.basicConfig(level=logging.ERROR)
     # Set our own logger levels to INFO by default
     app_level = os.getenv("APP_LOG_LEVEL", "INFO")
     app.logger.setLevel(os.getenv("APP_LOG_LEVEL", app_level))
     logging.getLogger("scripts").setLevel(app_level)
+    print(f"Logging level set to {app_level}.")  # MEGAN
 
     if allowed_origin := os.getenv("ALLOWED_ORIGIN"):
         allowed_origins = allowed_origin.split(";")
         if len(allowed_origins) > 0:
+            print(f"CORS enabled for {allowed_origins}")  # MEGAN
             app.logger.info("CORS enabled for %s", allowed_origins)
             cors(app, allow_origin=allowed_origins, allow_methods=["GET", "POST"])
-
+    else: #MEGAN
+        print("No CORS origins configured.")  # MEGAN
+    print("App creation complete. Returning app object.")  # MEGAN
     return app
