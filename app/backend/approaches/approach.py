@@ -23,7 +23,7 @@ from azure.search.documents.models import (
     VectorizedQuery,
     VectorQuery,
 )
-from openai import AsyncOpenAI, AsyncStream
+from openai import AsyncOpenAI, AsyncStream #AsyncAzureOpenAI, AsyncStream #MEGAN
 from openai.types import CompletionUsage
 from openai.types.chat import (
     ChatCompletion,
@@ -32,6 +32,7 @@ from openai.types.chat import (
     ChatCompletionReasoningEffort,
     ChatCompletionToolParam,
 )
+#from openai.types.async_streaming import AsyncStream
 
 from approaches.promptmanager import PromptManager
 from core.authentication import AuthenticationHelper
@@ -144,7 +145,7 @@ class Approach(ABC):
     def __init__(
         self,
         search_client: SearchClient,
-        openai_client: AsyncOpenAI,
+        openai_client: AsyncOpenAI, #AsyncAzureOpenAI, #MEGAN
         auth_helper: AuthenticationHelper,
         query_language: Optional[str],
         query_speller: Optional[str],
@@ -367,12 +368,21 @@ class Approach(ABC):
         dimensions_args: ExtraArgs = (
             {"dimensions": self.embedding_dimensions} if SUPPORTED_DIMENSIONS_MODEL[self.embedding_model] else {}
         )
+
+        print("[DEBUG] AZURE_OPENAI_ENDPOINT:", os.getenv("AZURE_OPENAI_ENDPOINT"))
+        print("[DEBUG] AZURE_OPENAI_API_KEY present:", os.getenv("AZURE_OPENAI_API_KEY") is not None)
+        print("[DEBUG] AZURE_OPENAI_EMB_DEPLOYMENT:", os.getenv("AZURE_OPENAI_EMB_DEPLOYMENT"))
+        print("[DEBUG] model param:", self.embedding_deployment)
+        print("[DEBUG] client:", self.openai_client)
+        print("[DEBUG] Using client type:", self.openai_client.__class__.__name__)
+
         embedding = await self.openai_client.embeddings.create(
             # Azure OpenAI takes the deployment name as the model name
-            model=self.embedding_deployment if self.embedding_deployment else self.embedding_model,
-            input=q,
+            model="embedding", #self.embedding_deployment, # if self.embedding_deployment else self.embedding_model, #MEGAN
+            input="hello from container", #q #MEGAN
             **dimensions_args,
         )
+        print("[DEBUG] Raw embedding response:", embedding) #MEGAN
         query_vector = embedding.data[0].embedding
         # This performs an oversampling due to how the search index was setup,
         # so we do not need to explicitly pass in an oversampling parameter here

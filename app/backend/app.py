@@ -436,6 +436,7 @@ async def setup_clients():
     AZURE_SEARCH_AGENT = os.getenv("AZURE_SEARCH_AGENT", "")
     # Shared by all OpenAI deployments
     OPENAI_HOST = os.getenv("OPENAI_HOST", "azure")
+    print("OPENAI_HOST:", OPENAI_HOST)
     OPENAI_CHATGPT_MODEL = os.environ["AZURE_OPENAI_CHATGPT_MODEL"]
     AZURE_OPENAI_SEARCHAGENT_MODEL = os.getenv("AZURE_OPENAI_SEARCHAGENT_MODEL")
     AZURE_OPENAI_SEARCHAGENT_DEPLOYMENT = os.getenv("AZURE_OPENAI_SEARCHAGENT_DEPLOYMENT")
@@ -450,6 +451,7 @@ async def setup_clients():
         os.getenv("AZURE_OPENAI_CHATGPT_DEPLOYMENT") if OPENAI_HOST.startswith("azure") else None
     )
     AZURE_OPENAI_EMB_DEPLOYMENT = os.getenv("AZURE_OPENAI_EMB_DEPLOYMENT") if OPENAI_HOST.startswith("azure") else None
+    print("AZURE_OPENAI_EMB_DEPLOYMENT:", AZURE_OPENAI_EMB_DEPLOYMENT)
     AZURE_OPENAI_CUSTOM_URL = os.getenv("AZURE_OPENAI_CUSTOM_URL")
     # https://learn.microsoft.com/azure/ai-services/openai/api-version-deprecation#latest-ga-api-release
     AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION") or "2024-10-21"
@@ -573,7 +575,6 @@ async def setup_clients():
         current_app.config[CONFIG_USER_BLOB_CONTAINER_CLIENT] = user_blob_container_client
 
         # Set up ingester
-        #MEGAN
         # file_processors = setup_file_processors(
         #     azure_credential=azure_credential,
         #     document_intelligence_service=os.getenv("AZURE_DOCUMENTINTELLIGENCE_SERVICE"),
@@ -581,11 +582,9 @@ async def setup_clients():
         #     local_html_parser=os.getenv("USE_LOCAL_HTML_PARSER", "").lower() == "true",
         #     search_images=USE_GPT4V,
         # )
-        #MEGAN
         # search_info = await setup_search_info(
         #     search_service=AZURE_SEARCH_SERVICE, index_name=AZURE_SEARCH_INDEX, azure_credential=azure_credential
         # )
-        #MEGAN
         # text_embeddings_service = setup_embeddings_service(
         #     azure_credential=azure_credential,
         #     openai_host=OPENAI_HOST,
@@ -599,17 +598,16 @@ async def setup_clients():
         #     openai_org=OPENAI_ORGANIZATION,
         #     disable_vectors=os.getenv("USE_VECTORS", "").lower() == "false",
         # )
-        #MEGAN
         # ingester = UploadUserFileStrategy(
         #     search_info=search_info,
         #     embeddings=text_embeddings_service,
         #     file_processors=file_processors,
         #     search_field_name_embedding=AZURE_SEARCH_FIELD_NAME_EMBEDDING,
         # )
-        current_app.config[CONFIG_INGESTER] = ingester
+        # current_app.config[CONFIG_INGESTER] = ingester #MEGAN
 
     # Used by the OpenAI SDK
-    openai_client: AsyncOpenAI
+    openai_client: AsyncOpenAI #AsyncAzureOpenAI #MEGAN
 
     if USE_SPEECH_OUTPUT_AZURE:
         current_app.logger.info("USE_SPEECH_OUTPUT_AZURE is true, setting up Azure speech service")
@@ -631,9 +629,15 @@ async def setup_clients():
             endpoint = AZURE_OPENAI_CUSTOM_URL
         else:
             current_app.logger.info("OPENAI_HOST is azure, setting up Azure OpenAI client")
-            if not AZURE_OPENAI_SERVICE:
-                raise ValueError("AZURE_OPENAI_SERVICE must be set when OPENAI_HOST is azure")
-            endpoint = f"https://{AZURE_OPENAI_SERVICE}.openai.azure.com"
+            # if not AZURE_OPENAI_SERVICE:
+            #     raise ValueError("AZURE_OPENAI_SERVICE must be set when OPENAI_HOST is azure")
+            # endpoint = f"https://{AZURE_OPENAI_SERVICE}.openai.azure.com"
+            endpoint = os.getenv("AZURE_OPENAI_ENDPOINT") #MEGAN
+            if not endpoint:#MEGAN
+                if not AZURE_OPENAI_SERVICE:#MEGAN
+                    raise ValueError("AZURE_OPENAI_SERVICE must be set when OPENAI_HOST is azure")#MEGAN
+                endpoint = f"https://{AZURE_OPENAI_SERVICE}.openai.azure.com"#MEGAN
+            print(f"[DEBUG] Final Azure OpenAI endpoint used: {endpoint}")#MEGAN
         if api_key := os.getenv("AZURE_OPENAI_API_KEY_OVERRIDE"):
             current_app.logger.info("AZURE_OPENAI_API_KEY_OVERRIDE found, using as api_key for Azure OpenAI client")
             openai_client = AsyncAzureOpenAI(
@@ -852,4 +856,5 @@ def create_app():
     else: #MEGAN
         print("No CORS origins configured.")  # MEGAN
     print("App creation complete. Returning app object.")  # MEGAN
+    #print("Registered routes:", app.url_map) # MEGAN
     return app

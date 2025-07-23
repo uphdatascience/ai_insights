@@ -5,6 +5,8 @@ import subprocess
 
 from dotenv import load_dotenv
 
+print("[DEBUG] load_azd_env() was imported")
+
 logger = logging.getLogger("scripts")
 
 #MEGAN: CHANGE ONCE NOT RUNNING LOCALLY ANYMORE???
@@ -30,6 +32,7 @@ logger = logging.getLogger("scripts")
 
 def load_azd_env():
     """Load local .env file from project root (two folders above this script)"""
+    print("[DEBUG] load_azd_env() was called")
     env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
     if os.path.exists(env_path):
         logger.info(f"Loading .env file from {env_path}")
