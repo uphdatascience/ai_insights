@@ -376,10 +376,14 @@ class Approach(ABC):
         print("[DEBUG] client:", self.openai_client)
         print("[DEBUG] Using client type:", self.openai_client.__class__.__name__)
 
+        model = os.getenv("AZURE_OPENAI_EMB_DEPLOYMENT", "embedding") # MEGAN NEW ADDITON POST WORKING
+        print(f"[DEBUG] model param: {model}") # MEGAN NEW ADDITION POST WORKING
+        if not model: # MEGAN NEW ADDITION POST WORKING
+            raise ValueError("AZURE_OPENAI_EMB_DEPLOYMENT not set in environment") # MEGAN NEW ADDITION POST WORKING
         embedding = await self.openai_client.embeddings.create(
             # Azure OpenAI takes the deployment name as the model name
-            model="embedding", #self.embedding_deployment, # if self.embedding_deployment else self.embedding_model, #MEGAN
-            input="hello from container", #q #MEGAN
+            model=model, #"embedding", #self.embedding_deployment, # if self.embedding_deployment else self.embedding_model, #MEGAN CHANGED FROM HARDCODED TO MODEL POST WORKING
+            input=q, #"hello from container", #q #MEGAN WOKRED WITH HARD CODED OPTION
             **dimensions_args,
         )
         print("[DEBUG] Raw embedding response:", embedding) #MEGAN
