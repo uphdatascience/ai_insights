@@ -14,9 +14,10 @@
   "dependencies": {
     "@azure/msal-browser": "^3.26.1",
     "@azure/msal-react": "^2.2.0",
-    "@fluentui/react": "^8.112.5",
-    "@fluentui/react-components": "^9.56.2",
-    "@fluentui/react-icons": "^2.0.265",
+    "@fluentui/react": "^8.123.1",
+    "@fluentui/react-components": "^9.67.0",
+    "@fluentui/react-icons": "^2.0.307",
+    "@fluentui/react-table": "^9.18.0",
     "@react-spring/web": "^9.7.5",
     "dompurify": "^3.2.4",
     "i18next": "^24.2.0",
@@ -38,7 +39,7 @@
   "devDependencies": {
     "@types/dom-speech-recognition": "^0.0.4",
     "@types/dompurify": "^3.0.5",
-    "@types/react": "^18.3.12",
+    "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
     "@types/react-helmet-async": "^1.0.1",
     "@types/react-syntax-highlighter": "^15.5.13",
